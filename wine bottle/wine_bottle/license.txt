@@ -1,0 +1,11 @@
+Model Information:
+* title:	Wine Bottle
+* source:	https://sketchfab.com/3d-models/wine-bottle-651e6b77329043ecb89cf5e75f5fe209
+* author:	sotocodes (https://sketchfab.com/sotocodes)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Wine Bottle" (https://sketchfab.com/3d-models/wine-bottle-651e6b77329043ecb89cf5e75f5fe209) by sotocodes (https://sketchfab.com/sotocodes) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

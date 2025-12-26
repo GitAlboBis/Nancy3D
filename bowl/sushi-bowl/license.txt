@@ -1,0 +1,11 @@
+Model Information:
+* title:	Sushi-bowl
+* source:	https://sketchfab.com/3d-models/sushi-bowl-2dbf0590e2004d3f8ce3d5919d14dfa4
+* author:	7thFlare (https://sketchfab.com/7thFlare)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Sushi-bowl" (https://sketchfab.com/3d-models/sushi-bowl-2dbf0590e2004d3f8ce3d5919d14dfa4) by 7thFlare (https://sketchfab.com/7thFlare) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

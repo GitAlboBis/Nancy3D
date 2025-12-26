@@ -134,6 +134,7 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         // Terminal Typewriter Effect
         const terminalText = document.getElementById('terminal-text');
@@ -175,7 +176,7 @@
         // Scene
         const scene = new THREE.Scene();
 
-        // Create romantic text background
+        // Create romantic text background (fallback)
         function createRomanticBackground() {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -223,11 +224,28 @@
             return new THREE.CanvasTexture(canvas);
         }
 
-        const bgTexture = createRomanticBackground();
-        bgTexture.wrapS = THREE.RepeatWrapping;
-        bgTexture.wrapT = THREE.RepeatWrapping;
-        bgTexture.repeat.set(2, 2);
-        scene.background = bgTexture;
+        // Load Taj Mahal background image with fallback
+        const backgroundLoader = new THREE.TextureLoader();
+        backgroundLoader.load(
+            'background.jpg',
+            (texture) => {
+                // Success: use the Taj Mahal image
+                // Adjust texture to show the upper part of the image
+                texture.offset.y = -0.4;
+                texture.wrapT = THREE.RepeatWrapping;
+                scene.background = texture;
+            },
+            undefined,
+            (error) => {
+                // Error: fallback to romantic text background
+                console.warn('background.jpg not found, using fallback background');
+                const bgTexture = createRomanticBackground();
+                bgTexture.wrapS = THREE.RepeatWrapping;
+                bgTexture.wrapT = THREE.RepeatWrapping;
+                bgTexture.repeat.set(2, 2);
+                scene.background = bgTexture;
+            }
+        );
 
         // Camera
         const camera = new THREE.PerspectiveCamera(
@@ -267,31 +285,135 @@
         pointLight.position.set(0, 3, 0);
         scene.add(pointLight);
 
-        // Floor
+        // Floor with Indian-style decorative pattern
+        function createIndianFloorTexture() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 1024;
+            canvas.height = 1024;
+
+            // Base marble-like gradient (cream/beige)
+            const gradient = context.createRadialGradient(512, 512, 0, 512, 512, 700);
+            gradient.addColorStop(0, '#F5E6D3');
+            gradient.addColorStop(0.5, '#E8D5B7');
+            gradient.addColorStop(1, '#D4C4A8');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw decorative tile pattern
+            const tileSize = 128;
+            const colors = ['#8B7355', '#A0826D', '#6B5344', '#9C8B7A'];
+
+            for (let y = 0; y < canvas.height; y += tileSize) {
+                for (let x = 0; x < canvas.width; x += tileSize) {
+                    // Tile border
+                    context.strokeStyle = '#6B5344';
+                    context.lineWidth = 3;
+                    context.strokeRect(x + 5, y + 5, tileSize - 10, tileSize - 10);
+
+                    // Inner decorative pattern (mandala-style)
+                    const centerX = x + tileSize / 2;
+                    const centerY = y + tileSize / 2;
+
+                    // Draw ornamental circle pattern
+                    context.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                    context.globalAlpha = 0.3;
+
+                    // Central circle
+                    context.beginPath();
+                    context.arc(centerX, centerY, 25, 0, Math.PI * 2);
+                    context.fill();
+
+                    // Radiating petals (8 petals)
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (Math.PI * 2 / 8) * i;
+                        const petalX = centerX + Math.cos(angle) * 35;
+                        const petalY = centerY + Math.sin(angle) * 35;
+
+                        context.beginPath();
+                        context.arc(petalX, petalY, 12, 0, Math.PI * 2);
+                        context.fill();
+                    }
+
+                    // Corner decorations
+                    context.fillStyle = '#8B7355';
+                    [0, 1, 2, 3].forEach(corner => {
+                        const cornerAngle = (Math.PI / 2) * corner;
+                        const cornerX = centerX + Math.cos(cornerAngle + Math.PI / 4) * 50;
+                        const cornerY = centerY + Math.sin(cornerAngle + Math.PI / 4) * 50;
+                        context.fillRect(cornerX - 3, cornerY - 3, 6, 6);
+                    });
+
+                    context.globalAlpha = 1.0;
+                }
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(3, 3);
+            return texture;
+        }
+
         const floorGeometry = new THREE.PlaneGeometry(20, 20);
+        const indianFloorTexture = createIndianFloorTexture();
         const floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0xe8d5f2,
-            roughness: 0.8,
-            metalness: 0.2
+            map: indianFloorTexture,
+            roughness: 0.6,
+            metalness: 0.1
         });
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         scene.add(floor);
 
-        // Table (simple rectangular table with wood material)
+        // Table (romantic picnic table)
         const tableGroup = new THREE.Group();
 
-        // Wood material for table
+        // Wood material for table legs
         const woodMaterial = new THREE.MeshStandardMaterial({
             color: 0x8B4513, // Saddle brown
             roughness: 0.8,
             metalness: 0.1
         });
 
-        // Table top
+        // Create red and white checkered tablecloth texture
+        function createTableclothTexture() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 512;
+            canvas.height = 512;
+
+            const squareSize = 64; // Size of each checker square
+            const red = '#E74C3C';
+            const white = '#FFFFFF';
+
+            for (let y = 0; y < canvas.height; y += squareSize) {
+                for (let x = 0; x < canvas.width; x += squareSize) {
+                    // Alternate colors like a checkerboard
+                    const isRed = ((x / squareSize) + (y / squareSize)) % 2 === 0;
+                    context.fillStyle = isRed ? red : white;
+                    context.fillRect(x, y, squareSize, squareSize);
+                }
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(2, 2); // Repeat the pattern for better visual
+            return texture;
+        }
+
+        // Table top with tablecloth texture
+        const tableclothTexture = createTableclothTexture();
+        const tableclothMaterial = new THREE.MeshStandardMaterial({
+            map: tableclothTexture,
+            roughness: 0.7,
+            metalness: 0.0
+        });
+
         const tableTopGeometry = new THREE.BoxGeometry(3, 0.1, 2);
-        const tableTop = new THREE.Mesh(tableTopGeometry, woodMaterial);
+        const tableTop = new THREE.Mesh(tableTopGeometry, tableclothMaterial);
         tableTop.position.y = 1.5;
         tableTop.castShadow = true;
         tableTop.receiveShadow = true;
@@ -361,17 +483,383 @@
             return frameGroup;
         }
 
-        // Create two picture frames
+        // Indian Dinner Setup - Butter Chicken and Rice
         // ========================================
-        // 📸 REPLACE THESE URLs WITH YOUR OWN IMAGES
-        // Example: createPictureFrame('photo1.jpg', -0.7)
-        // Make sure your images are in the same folder as this HTML file
-        // ========================================
-        const frame1 = createPictureFrame('1.jpeg', -0.7);
-        const frame2 = createPictureFrame('tavolo2.jpeg', 0.7);
 
-        scene.add(frame1);
-        scene.add(frame2);
+        // Table top height (same as table position)
+        const tableTopHeight = 1.5;
+
+        // Function to create a dinner plate
+        function createDinnerPlate() {
+            const plateGroup = new THREE.Group();
+
+            // Plate base (white ceramic) - EXTRA LARGE AND 3D
+            const plateGeometry = new THREE.CylinderGeometry(0.50, 0.50, 0.08, 32);
+            const plateMaterial = new THREE.MeshStandardMaterial({
+                color: 0xF5F5F5,
+                roughness: 0.3,
+                metalness: 0.1
+            });
+            const plate = new THREE.Mesh(plateGeometry, plateMaterial);
+            plate.castShadow = true;
+            plate.receiveShadow = true;
+            plateGroup.add(plate);
+
+            // Add plate rim for more 3D effect
+            const rimGeometry = new THREE.TorusGeometry(0.50, 0.025, 16, 32);
+            const rim = new THREE.Mesh(rimGeometry, plateMaterial);
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = 0.04;
+            plateGroup.add(rim);
+
+            return plateGroup;
+        }
+
+        // GLTFLoader instance
+        const gltfLoader = new GLTFLoader();
+
+        // Function to load GLTF model and configure it
+        function loadGLTFModel(path, scale, position, callback) {
+            gltfLoader.load(
+                path,
+                (gltf) => {
+                    const model = gltf.scene;
+
+                    // Apply scale
+                    model.scale.set(scale, scale, scale);
+
+                    // Apply position
+                    model.position.set(position.x, position.y, position.z);
+
+                    // Enable shadows on all meshes
+                    model.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+
+                    if (callback) callback(model);
+                },
+                (progress) => {
+                    console.log(`Loading ${path}: ${(progress.loaded / progress.total * 100).toFixed(2)}%`);
+                },
+                (error) => {
+                    console.error(`Error loading ${path}:`, error);
+                }
+            );
+        }
+
+        // Function to create utensils (fork and knife)
+        function createUtensils(positionX) {
+            const utensilGroup = new THREE.Group();
+
+            const silverMaterial = new THREE.MeshStandardMaterial({
+                color: 0xC0C0C0,
+                roughness: 0.3,
+                metalness: 0.9
+            });
+
+            // Fork (left side) - LARGER
+            const forkHandle = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.008, 0.008, 0.18, 8),
+                silverMaterial
+            );
+            forkHandle.rotation.z = Math.PI / 2;
+            forkHandle.position.set(positionX - 0.35, tableTopHeight + 0.01, 0);
+            utensilGroup.add(forkHandle);
+
+            // Knife (right side) - LARGER
+            const knifeHandle = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.008, 0.008, 0.18, 8),
+                silverMaterial
+            );
+            knifeHandle.rotation.z = Math.PI / 2;
+            knifeHandle.position.set(positionX + 0.35, tableTopHeight + 0.01, 0);
+            utensilGroup.add(knifeHandle);
+
+            return utensilGroup;
+        }
+
+        // Function to create glass
+        function createGlass(positionX, positionZ) {
+            const glassGeometry = new THREE.CylinderGeometry(0.07, 0.06, 0.20, 16);
+            const glassMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xCCE5FF,
+                transparent: true,
+                opacity: 0.3,
+                roughness: 0.1,
+                metalness: 0.0,
+                transmission: 0.9
+            });
+            const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+            glass.position.set(positionX, tableTopHeight + 0.12, positionZ);
+            return glass;
+        }
+
+        // Function to create a vase with roses
+        function createRoseVase() {
+            const vaseGroup = new THREE.Group();
+
+            // Vase body (elegant glass vase) - LARGER
+            const vaseGeometry = new THREE.CylinderGeometry(0.10, 0.07, 0.25, 16);
+            const vaseMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xE8F4F8,
+                transparent: true,
+                opacity: 0.4,
+                roughness: 0.1,
+                metalness: 0.0,
+                transmission: 0.8
+            });
+            const vase = new THREE.Mesh(vaseGeometry, vaseMaterial);
+            vase.position.y = 0.14;
+            vase.castShadow = true;
+            vaseGroup.add(vase);
+
+            // Vase rim
+            const rimGeometry = new THREE.TorusGeometry(0.10, 0.014, 16, 32);
+            const rim = new THREE.Mesh(rimGeometry, vaseMaterial);
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = 0.265;
+            vaseGroup.add(rim);
+
+            // Create roses - MORE AND BIGGER
+            for (let i = 0; i < 7; i++) {
+                const rose = createRose();
+                const angle = (i / 7) * Math.PI * 2 + Math.random() * 0.3;
+                const height = 0.25 + Math.random() * 0.12;
+                const radius = 0.03 + Math.random() * 0.04;
+
+                rose.position.set(
+                    Math.cos(angle) * radius,
+                    height,
+                    Math.sin(angle) * radius
+                );
+                rose.rotation.z = (Math.random() - 0.5) * 0.3;
+                rose.scale.set(1.5, 1.5, 1.5);
+                vaseGroup.add(rose);
+            }
+
+            return vaseGroup;
+        }
+
+        // Function to create a single rose
+        function createRose() {
+            const roseGroup = new THREE.Group();
+
+            // Rose colors (red shades)
+            const petalColors = [0xDC143C, 0xFF1744, 0xC51162, 0xD50000];
+            const roseColor = petalColors[Math.floor(Math.random() * petalColors.length)];
+
+            // Rose head (main flower) - BIGGER
+            const headGeometry = new THREE.SphereGeometry(0.035, 8, 8);
+            const headMaterial = new THREE.MeshStandardMaterial({
+                color: roseColor,
+                roughness: 0.6,
+                metalness: 0.1
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.scale.set(1, 0.8, 1);
+            head.castShadow = true;
+            roseGroup.add(head);
+
+            // Petals around the rose - BIGGER
+            for (let i = 0; i < 8; i++) {
+                const petalGeometry = new THREE.SphereGeometry(0.022, 6, 6);
+                const petal = new THREE.Mesh(petalGeometry, headMaterial);
+                const angle = (i / 8) * Math.PI * 2;
+                petal.position.set(
+                    Math.cos(angle) * 0.03,
+                    -0.008,
+                    Math.sin(angle) * 0.03
+                );
+                petal.scale.set(0.8, 1.2, 0.6);
+                roseGroup.add(petal);
+            }
+
+            // Stem - THICKER
+            const stemGeometry = new THREE.CylinderGeometry(0.005, 0.005, 0.18, 8);
+            const stemMaterial = new THREE.MeshStandardMaterial({
+                color: 0x228B22,
+                roughness: 0.8
+            });
+            const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+            stem.position.y = -0.09;
+            roseGroup.add(stem);
+
+            // Leaves - BIGGER
+            for (let i = 0; i < 3; i++) {
+                const leafGeometry = new THREE.SphereGeometry(0.018, 6, 6);
+                const leafMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x2E7D32,
+                    roughness: 0.7
+                });
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                leaf.scale.set(0.5, 0.3, 1.5);
+                leaf.position.set(
+                    (i === 0 ? 0.022 : i === 1 ? -0.022 : 0),
+                    -0.06 - i * 0.03,
+                    0
+                );
+                leaf.rotation.z = (i === 0 ? -0.5 : i === 1 ? 0.5 : 0);
+                roseGroup.add(leaf);
+            }
+
+            return roseGroup;
+        }
+
+        // Function to create a candle
+        function createCandle(positionX, positionZ) {
+            const candleGroup = new THREE.Group();
+
+            // Candle body (wax) - LARGER
+            const candleGeometry = new THREE.CylinderGeometry(0.04, 0.045, 0.20, 16);
+            const candleMaterial = new THREE.MeshStandardMaterial({
+                color: 0xFFF8DC, // Cream color
+                roughness: 0.7,
+                metalness: 0.0
+            });
+            const candle = new THREE.Mesh(candleGeometry, candleMaterial);
+            candle.position.y = tableTopHeight + 0.11;
+            candle.castShadow = true;
+            candleGroup.add(candle);
+
+            // Wick (black thread) - LARGER
+            const wickGeometry = new THREE.CylinderGeometry(0.003, 0.003, 0.025, 8);
+            const wickMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a1a1a
+            });
+            const wick = new THREE.Mesh(wickGeometry, wickMaterial);
+            wick.position.y = tableTopHeight + 0.225;
+            candleGroup.add(wick);
+
+            // Flame (glowing sphere) - LARGER
+            const flameGeometry = new THREE.SphereGeometry(0.025, 8, 8);
+            const flameMaterial = new THREE.MeshStandardMaterial({
+                color: 0xFFA500,
+                emissive: 0xFF6600,
+                emissiveIntensity: 2.5,
+                transparent: true,
+                opacity: 0.9
+            });
+            const flame = new THREE.Mesh(flameGeometry, flameMaterial);
+            flame.scale.set(0.8, 1.5, 0.8);
+            flame.position.y = tableTopHeight + 0.25;
+            candleGroup.add(flame);
+
+            // Point light from flame - BRIGHTER
+            const flameLight = new THREE.PointLight(0xFF9933, 1.2, 3);
+            flameLight.position.y = tableTopHeight + 0.25;
+            flameLight.castShadow = true;
+            candleGroup.add(flameLight);
+
+            // Store flame and light for animation
+            candleGroup.userData.flame = flame;
+            candleGroup.userData.flameLight = flameLight;
+            candleGroup.userData.baseY = tableTopHeight + 0.25;
+            candleGroup.userData.flickerPhase = Math.random() * Math.PI * 2;
+
+            candleGroup.position.set(positionX, 0, positionZ);
+            return candleGroup;
+        }
+
+        // Create dinner setup
+        const dinnerGroup = new THREE.Group();
+
+
+
+        // Load left sushi bowl model
+        loadGLTFModel(
+            'bowl/sushi-bowl/scene.gltf',
+            0.8,
+            { x: -1.2, y: 1, z: 0 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Left sushi bowl loaded successfully');
+            }
+        );
+
+
+
+        // Load right sushi bowl model
+        loadGLTFModel(
+            'bowl/sushi-bowl/scene.gltf',
+            0.8,
+            { x: 0.8, y: 1, z: 0 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Right sushi bowl loaded successfully');
+            }
+        );
+
+
+
+        // Load center sushi model (in front of the rose vase)
+        loadGLTFModel(
+            'sushi/sushi/scene.gltf',
+            0.02,
+            { x: 0, y: 1.4, z: 0.15 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Center sushi loaded successfully');
+            }
+        );
+
+        // Load left wine glass (in front of left sushi bowl)
+        loadGLTFModel(
+            'glass/simple_glass_cup/scene.gltf',
+            0.07,
+            { x: -1, y: 1.9, z: 0.5 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Left wine glass loaded successfully');
+            }
+        );
+
+        // Load right wine glass (in front of right sushi bowl)
+        loadGLTFModel(
+            'glass/simple_glass_cup/scene.gltf',
+            0.07,
+            { x: 0.8, y: 1.9, z: 0.5 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Right wine glass loaded successfully');
+            }
+        );
+
+
+        // Add single candle for romantic atmosphere
+        const candle = createCandle(1, -0.6);
+        dinnerGroup.add(candle);
+        const candle2 = createCandle(-1, -0.6);
+        dinnerGroup.add(candle2);
+
+        // Load wine bottle next to candle
+        loadGLTFModel(
+            'wine bottle/wine_bottle/scene.gltf',
+            0.15,
+            { x: -0.5, y: 2, z: -0.6 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Wine bottle loaded successfully');
+            }
+        );
+
+        // Load flowers in vase
+        loadGLTFModel(
+            'flowers/flowers_in_vase/scene.gltf',
+            2,
+            { x: 0.1, y: 1.5, z: -0.4 },
+            (model) => {
+                dinnerGroup.add(model);
+                console.log('Flowers loaded successfully');
+            }
+        );
+
+        // Store candle for animation
+        const candles = [candle];
+
+        scene.add(dinnerGroup);
 
         // Particle System - Magical floating particles
         const particleCount = 100;
@@ -544,10 +1032,10 @@
             return polaroidGroup;
         }
 
-        // Creiamo la lista esatta dei tuoi file
+        // Creiamo la lista esatta dei tuoi file (expanded to include table photos)
         const galleryPhotos = [
-            '3.jpeg', '4.jpeg', '5.jpeg', '6.jpeg', '7.jpeg',
-            '8.jpeg', '9.jpeg', '10.jpeg', '11.jpeg', '12.jpeg'
+            '1.jpeg', '3.jpeg', '4.jpeg', '5.jpeg', '6.jpeg', '7.jpeg',
+            '8.jpeg', '9.jpeg', '10.jpeg', '11.jpeg', '12.jpeg', 'tavolo2.jpeg'
         ];
 
         for (let i = 0; i < photoCount; i++) {
@@ -677,6 +1165,30 @@
                 heart.position.y += Math.sin(time * heartObj.speed + heartObj.offset) * 0.002;
                 heart.rotation.y += 0.005;
             });
+
+            // Animate candle flames - flickering effect
+            candles.forEach(candleGroup => {
+                const flame = candleGroup.userData.flame;
+                const flameLight = candleGroup.userData.flameLight;
+                const baseY = candleGroup.userData.baseY;
+
+                // Update flicker phase
+                candleGroup.userData.flickerPhase += 0.1 + Math.random() * 0.05;
+
+                // Flicker position
+                const flickerOffset = Math.sin(candleGroup.userData.flickerPhase) * 0.008;
+                flame.position.y = baseY + flickerOffset;
+                flameLight.position.y = baseY + flickerOffset;
+
+                // Flicker intensity
+                const intensityVariation = 0.8 + Math.sin(candleGroup.userData.flickerPhase * 1.5) * 0.2;
+                flameLight.intensity = intensityVariation;
+
+                // Slight scale variation
+                const scaleVariation = 1.0 + Math.sin(candleGroup.userData.flickerPhase * 2) * 0.1;
+                flame.scale.set(0.8 * scaleVariation, 1.5 * scaleVariation, 0.8 * scaleVariation);
+            });
+
 
             // Animate the background heart cloud - 2D rotation (sprites move along perimeter)
             // 2D Rotation: move each sprite along the heart perimeter (clockwise)

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Sushi
+* source:	https://sketchfab.com/3d-models/sushi-055cd836750a4cc0900680c9a16bcb0c
+* author:	yoshimura.manufacturing (https://sketchfab.com/yoshimura.manufacturing)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Sushi" (https://sketchfab.com/3d-models/sushi-055cd836750a4cc0900680c9a16bcb0c) by yoshimura.manufacturing (https://sketchfab.com/yoshimura.manufacturing) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
