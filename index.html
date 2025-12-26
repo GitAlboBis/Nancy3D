@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- iOS Specific Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="For You">
+
+    <title>For You ♡</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #ffc3e1 0%, #d4a5f9 50%, #c5a5f9 100%);
+        }
+
+        #terminal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 1.5s ease-out;
+        }
+
+        #terminal-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .terminal-content {
+            padding: 20px;
+            max-width: 90%;
+        }
+
+        .terminal-text {
+            color: #00ff00;
+            font-size: 18px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background: #00ff00;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            49% {
+                opacity: 1;
+            }
+
+            50%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+
+        /* Loading indicator for 3D scene */
+        .loading {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            z-index: 500;
+            font-family: Arial, sans-serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Canvas Container for Three.js -->
+    <div id="canvas-container"></div>
+
+    <!-- Terminal Overlay -->
+    <div id="terminal-overlay">
+        <div class="terminal-content">
+            <div class="terminal-text" id="terminal-text"></div>
+        </div>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Terminal Typewriter Effect
+        const terminalText = document.getElementById('terminal-text');
+        const terminalOverlay = document.getElementById('terminal-overlay');
+        const textToType = 'Ciao Nancy...\nQuesto è un piccolo mondo che ho creato...\nPer tutte le volte che ti senti sola o arrabbiata...\naccess_granted: TI AMO <3';
+
+        let charIndex = 0;
+        const typingSpeed = 80; // milliseconds per character
+
+        function typeWriter() {
+            if (charIndex < textToType.length) {
+                const char = textToType.charAt(charIndex);
+                terminalText.textContent += char;
+                charIndex++;
+
+                // Vary typing speed slightly for more natural effect
+                const variance = Math.random() * 40 - 20;
+                setTimeout(typeWriter, typingSpeed + variance);
+            } else {
+                // Add cursor at the end
+                const cursor = document.createElement('span');
+                cursor.className = 'cursor';
+                terminalText.appendChild(cursor);
+
+                // Wait 1.5 seconds, then fade out
+                setTimeout(() => {
+                    terminalOverlay.classList.add('fade-out');
+                    // Remove from DOM after fade completes
+                    setTimeout(() => {
+                        terminalOverlay.style.display = 'none';
+                    }, 1500);
+                }, 1500);
+            }
+        }
+
+        // THREE.JS SCENE SETUP
+        const container = document.getElementById('canvas-container');
+
+        // Scene
+        const scene = new THREE.Scene();
+
+        // Create romantic text background
+        function createRomanticBackground() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 1024;
+            canvas.height = 1024;
+
+            // Pink gradient background
+            const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#ffc3e1');
+            gradient.addColorStop(0.5, '#d4a5f9');
+            gradient.addColorStop(1, '#c5a5f9');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Array of romantic phrases
+            const phrases = [
+                'ti amo ♡',
+                'amore mio',
+                'sei tutto',
+                'per sempre',
+                'ti penso',
+                'cuore mio',
+                'nancy ♡',
+                'forever',
+                'my love'
+            ];
+
+            // Set text properties
+            context.font = 'Bold 32px Arial'; // Larger font
+            context.fillStyle = 'rgba(255, 255, 255, 0.3)'; // More visible
+            context.textAlign = 'center';
+
+            // Draw phrases in a pattern
+            for (let y = 30; y < canvas.height; y += 80) {
+                for (let x = 30; x < canvas.width; x += 200) {
+                    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+                    context.save();
+                    context.translate(x, y);
+                    context.rotate((Math.random() - 0.5) * 0.3);
+                    context.fillText(phrase, 0, 0);
+                    context.restore();
+                }
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const bgTexture = createRomanticBackground();
+        bgTexture.wrapS = THREE.RepeatWrapping;
+        bgTexture.wrapT = THREE.RepeatWrapping;
+        bgTexture.repeat.set(2, 2);
+        scene.background = bgTexture;
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 3, 8);
+        camera.lookAt(0, 1, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -10;
+        directionalLight.shadow.camera.right = 10;
+        directionalLight.shadow.camera.top = 10;
+        directionalLight.shadow.camera.bottom = -10;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        // Add a soft pink point light for romantic atmosphere
+        const pointLight = new THREE.PointLight(0xff69b4, 0.5, 20);
+        pointLight.position.set(0, 3, 0);
+        scene.add(pointLight);
+
+        // Floor
+        const floorGeometry = new THREE.PlaneGeometry(20, 20);
+        const floorMaterial = new THREE.MeshStandardMaterial({
+            color: 0xe8d5f2,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Table (simple rectangular table with wood material)
+        const tableGroup = new THREE.Group();
+
+        // Wood material for table
+        const woodMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8B4513, // Saddle brown
+            roughness: 0.8,
+            metalness: 0.1
+        });
+
+        // Table top
+        const tableTopGeometry = new THREE.BoxGeometry(3, 0.1, 2);
+        const tableTop = new THREE.Mesh(tableTopGeometry, woodMaterial);
+        tableTop.position.y = 1.5;
+        tableTop.castShadow = true;
+        tableTop.receiveShadow = true;
+        tableGroup.add(tableTop);
+
+        // Table legs
+        const legGeometry = new THREE.BoxGeometry(0.1, 1.5, 0.1);
+        const legPositions = [
+            [-1.3, 0.75, -0.8],
+            [1.3, 0.75, -0.8],
+            [-1.3, 0.75, 0.8],
+            [1.3, 0.75, 0.8]
+        ];
+
+        legPositions.forEach(pos => {
+            const leg = new THREE.Mesh(legGeometry, woodMaterial);
+            leg.position.set(...pos);
+            leg.castShadow = true;
+            tableGroup.add(leg);
+        });
+
+        scene.add(tableGroup);
+
+        // Picture Frames
+        const textureLoader = new THREE.TextureLoader();
+
+        // Function to create a picture frame
+        function createPictureFrame(imageUrl, positionX) {
+            const frameGroup = new THREE.Group();
+
+            // Frame border (outer frame)
+            const frameBorderGeometry = new THREE.BoxGeometry(1.2, 1.6, 0.1);
+            const frameBorderMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2c1810,
+                roughness: 0.6,
+                metalness: 0.2
+            });
+            const frameBorder = new THREE.Mesh(frameBorderGeometry, frameBorderMaterial);
+            frameBorder.castShadow = true;
+            frameGroup.add(frameBorder);
+
+            // Photo/Image plane (inside the frame)
+            const photoGeometry = new THREE.PlaneGeometry(1.0, 1.4);
+            const photoTexture = textureLoader.load(imageUrl);
+            const photoMaterial = new THREE.MeshStandardMaterial({
+                map: photoTexture,
+                roughness: 0.5
+            });
+            const photo = new THREE.Mesh(photoGeometry, photoMaterial);
+            photo.position.z = 0.06; // Slightly in front of the frame border
+            frameGroup.add(photo);
+
+            // Position the frame on the table
+            frameGroup.position.set(positionX, 1.55 + 0.8, -0.3); // On table surface, raised by half height
+
+            // Tilt backward
+            frameGroup.rotation.x = -0.15; // Slight backward tilt
+
+            // Angle towards center
+            if (positionX < 0) {
+                frameGroup.rotation.y = 0.2; // Left frame angles right
+            } else {
+                frameGroup.rotation.y = -0.2; // Right frame angles left
+            }
+
+            frameGroup.castShadow = true;
+            return frameGroup;
+        }
+
+        // Create two picture frames
+        // ========================================
+        // 📸 REPLACE THESE URLs WITH YOUR OWN IMAGES
+        // Example: createPictureFrame('photo1.jpg', -0.7)
+        // Make sure your images are in the same folder as this HTML file
+        // ========================================
+        const frame1 = createPictureFrame('1.jpeg', -0.7);
+        const frame2 = createPictureFrame('tavolo2.jpeg', 0.7);
+
+        scene.add(frame1);
+        scene.add(frame2);
+
+        // Particle System - Magical floating particles
+        const particleCount = 100;
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        const particleVelocities = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            // Random position around the table area
+            particlePositions[i3] = (Math.random() - 0.5) * 10; // x
+            particlePositions[i3 + 1] = Math.random() * 5; // y (floating above ground)
+            particlePositions[i3 + 2] = (Math.random() - 0.5) * 10; // z
+
+            // Random velocity for each particle
+            particleVelocities.push({
+                x: (Math.random() - 0.5) * 0.02,
+                y: (Math.random() * 0.01) + 0.005,
+                z: (Math.random() - 0.5) * 0.02
+            });
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            color: 0xffd1dc, // Soft pink
+            size: 0.08,
+            transparent: true,
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: true
+        });
+
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particles);
+
+        // ========================================
+        // SPECTACULAR BACKGROUND HEART CLOUD
+        // ========================================
+
+        // Create canvas texture for "i love you" text
+        function createTextSprite() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+
+            // Set text properties
+            context.font = 'Bold 24px Arial';
+            context.fillStyle = '#ffb3d9'; // Light pink
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+
+            // Draw text with slight glow
+            context.shadowColor = '#ff69b4';
+            context.shadowBlur = 10;
+            context.fillText('i love you', canvas.width / 2, canvas.height / 2);
+
+            // Create texture from canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+
+            return texture;
+        }
+
+        // Create sprite material using the text texture
+        const textTexture = createTextSprite();
+        const spriteMaterial = new THREE.SpriteMaterial({
+            map: textTexture,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+
+        // Create heart cloud group
+        const heartCloud = new THREE.Group();
+        const heartSpriteCount = 300; // Number of sprites forming the heart
+
+        // Parametric heart equation to generate positions
+        function heartFunction(u, v, scale = 1) {
+            // u goes from 0 to 2π (around the heart)
+            // v goes from 0 to π (top to bottom of heart)
+
+            const t = u;
+            const s = v;
+
+            // 3D Heart parametric equations
+            const x = scale * 16 * Math.pow(Math.sin(t), 3);
+            const y = scale * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            const z = scale * 8 * Math.sin(t) * Math.sin(s);
+
+            return { x, y, z };
+        }
+
+        // Generate sprites in heart shape
+        for (let i = 0; i < heartSpriteCount; i++) {
+            const sprite = new THREE.Sprite(spriteMaterial.clone());
+
+            // Random parameters for heart surface
+            const u = Math.random() * Math.PI * 2;
+            const v = Math.random() * Math.PI;
+
+            // Get position on heart surface
+            const pos = heartFunction(u, v, 0.15); // Scale down the heart
+
+            // Add some randomness to create volume/cloud effect
+            pos.x += (Math.random() - 0.5) * 0.5;
+            pos.y += (Math.random() - 0.5) * 0.5;
+            pos.z += (Math.random() - 0.5) * 0.5;
+
+            sprite.position.set(pos.x, pos.y, pos.z); // Offset Y to center nicely
+            sprite.scale.set(0.5, 0.25, 1); // Larger sprite size for "i love you"
+
+            // Store original parameters for animation
+            sprite.userData.originalU = u;
+            sprite.userData.originalV = v;
+            sprite.userData.scale = 0.15;
+
+            heartCloud.add(sprite);
+        }
+
+        // Position the heart cloud in the background
+        heartCloud.position.set(0, -4, -3);
+        heartCloud.scale.set(1.0, 1.0, 1.0); // Smaller, more delicate size
+
+        // Store initial scale for pulsation animation
+        heartCloud.userData.baseScale = 1.0;
+        heartCloud.userData.pulsePhase = 0;
+        heartCloud.userData.rotationAngle = 0; // For 2D rotation
+
+        scene.add(heartCloud);
+
+        // ========================================
+        // MEMORY RING - Floating Polaroid Photos
+        // ========================================
+
+        const memoryRing = new THREE.Group();
+        const photoCount = 10;
+        const ringRadius = 8;
+        const textureLoader2 = new THREE.TextureLoader();
+
+        // Function to create a Polaroid-style photo
+        function createPolaroid(imageUrl, index) {
+            const polaroidGroup = new THREE.Group();
+
+            // White Polaroid border/frame
+            const frameGeometry = new THREE.PlaneGeometry(1.5, 1.8);
+            const frameMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                roughness: 0.7
+            });
+            const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+            frame.castShadow = true;
+            polaroidGroup.add(frame);
+
+            // Photo inside (slightly smaller, offset up)
+            const photoGeometry = new THREE.PlaneGeometry(1.3, 1.3);
+            const photoTexture = textureLoader2.load(imageUrl);
+            const photoMaterial = new THREE.MeshStandardMaterial({
+                map: photoTexture,
+                side: THREE.DoubleSide,
+                roughness: 0.5
+            });
+            const photo = new THREE.Mesh(photoGeometry, photoMaterial);
+            photo.position.z = 0.01; // Slightly in front of frame
+            photo.position.y = 0.15; // Offset up to leave space for bottom border
+            polaroidGroup.add(photo);
+
+            return polaroidGroup;
+        }
+
+        // Creiamo la lista esatta dei tuoi file
+        const galleryPhotos = [
+            '3.jpeg', '4.jpeg', '5.jpeg', '6.jpeg', '7.jpeg',
+            '8.jpeg', '9.jpeg', '10.jpeg', '11.jpeg', '12.jpeg'
+        ];
+
+        for (let i = 0; i < photoCount; i++) {
+            const angle = (i / photoCount) * Math.PI * 2;
+
+            // Prende il nome del file dall'array che abbiamo creato sopra
+            // Usa "i % galleryPhotos.length" per evitare errori se cambiassi il numero di foto
+            const fileName = galleryPhotos[i % galleryPhotos.length];
+
+            const polaroid = createPolaroid(fileName, i);
+
+            // Position in circle
+            const x = Math.cos(angle) * ringRadius;
+            const z = Math.sin(angle) * ringRadius;
+            polaroid.position.set(x, 2.5, z); // Float at height 2.5
+
+            memoryRing.add(polaroid);
+        }
+        scene.add(memoryRing);
+
+        // Add some decorative elements - floating hearts
+        const heartShape = new THREE.Shape();
+        const x = 0, y = 0;
+        heartShape.moveTo(x + 0.5, y + 0.5);
+        heartShape.bezierCurveTo(x + 0.5, y + 0.3, x + 0.4, y, x, y);
+        heartShape.bezierCurveTo(x - 0.3, y, x - 0.5, y + 0.3, x - 0.5, y + 0.5);
+        heartShape.bezierCurveTo(x - 0.5, y + 0.7, x - 0.3, y + 1.1, x, y + 1.5);
+        heartShape.bezierCurveTo(x + 0.3, y + 1.1, x + 0.5, y + 0.7, x + 0.5, y + 0.5);
+
+        const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.02, bevelThickness: 0.02 };
+        const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+
+        const heartMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff69b4,
+            roughness: 0.2,
+            metalness: 0.3,
+            emissive: 0xff1493,
+            emissiveIntensity: 0.2
+        });
+
+        // Create multiple hearts floating above the table
+        const hearts = [];
+        for (let i = 0; i < 5; i++) {
+            const heart = new THREE.Mesh(heartGeometry, heartMaterial);
+            heart.scale.set(0.2, 0.2, 0.2);
+            heart.position.set(
+                (Math.random() - 0.5) * 4,
+                2 + Math.random() * 2,
+                (Math.random() - 0.5) * 3
+            );
+            heart.rotation.z = Math.random() * Math.PI * 2;
+            heart.castShadow = true;
+            scene.add(heart);
+            hearts.push({
+                mesh: heart,
+                speed: 0.2 + Math.random() * 0.3,
+                offset: Math.random() * Math.PI * 2
+            });
+        }
+
+        // OrbitControls for touch interaction
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 15;
+        controls.maxPolarAngle = Math.PI / 2.1; // Don't go below the floor
+        controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+
+        // Auto-rotation variables
+        let isUserInteracting = false;
+        let autoRotateSpeed = 0.1; // Very slow rotation
+        let cameraAngle = 0; // Track camera angle for smooth resume
+
+        // Detect user interaction
+        controls.addEventListener('start', () => {
+            isUserInteracting = true;
+        });
+
+        controls.addEventListener('end', () => {
+            isUserInteracting = false;
+            // Calculate current angle from camera position to resume smoothly
+            cameraAngle = Math.atan2(camera.position.x, camera.position.z);
+        });
+
+        // Animation Loop
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            // Auto-rotate camera when not interacting
+            if (!isUserInteracting) {
+                cameraAngle += autoRotateSpeed * 0.01;
+                camera.position.x = Math.sin(cameraAngle) * 8;
+                camera.position.z = Math.cos(cameraAngle) * 8;
+                camera.lookAt(0, 1.5, 0); // Look at table height
+            }
+
+            // Animate particles
+            const positions = particlesGeometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+
+                // Update positions based on velocity
+                positions[i3] += particleVelocities[i].x;
+                positions[i3 + 1] += particleVelocities[i].y;
+                positions[i3 + 2] += particleVelocities[i].z;
+
+                // Reset particles that go too high or too far
+                if (positions[i3 + 1] > 6) {
+                    positions[i3 + 1] = 0;
+                }
+                if (Math.abs(positions[i3]) > 8 || Math.abs(positions[i3 + 2]) > 8) {
+                    positions[i3] = (Math.random() - 0.5) * 10;
+                    positions[i3 + 2] = (Math.random() - 0.5) * 10;
+                }
+            }
+            particlesGeometry.attributes.position.needsUpdate = true;
+
+            // Animate hearts - gentle floating motion
+            hearts.forEach((heartObj, index) => {
+                const heart = heartObj.mesh;
+                heart.position.y += Math.sin(time * heartObj.speed + heartObj.offset) * 0.002;
+                heart.rotation.y += 0.005;
+            });
+
+            // Animate the background heart cloud - 2D rotation (sprites move along perimeter)
+            // 2D Rotation: move each sprite along the heart perimeter (clockwise)
+            heartCloud.userData.rotationAngle += 0.01; // Rotation speed
+
+            heartCloud.children.forEach(sprite => {
+                if (sprite.userData.originalU !== undefined) {
+                    // Calculate new position with rotation offset
+                    const u = sprite.userData.originalU + heartCloud.userData.rotationAngle;
+                    const v = sprite.userData.originalV;
+                    const scale = sprite.userData.scale;
+
+                    // Heart parametric equations
+                    const t = u;
+                    const s = v;
+                    const x = scale * 16 * Math.pow(Math.sin(t), 3);
+                    const y = scale * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                    const z = scale * 8 * Math.sin(t) * Math.sin(s);
+
+                    // Update sprite position
+                    sprite.position.set(x, y + 3, z);
+                }
+            });
+
+            // Pulsation effect - heart beats
+            heartCloud.userData.pulsePhase += 0.05;
+            const pulseScale = heartCloud.userData.baseScale + Math.sin(heartCloud.userData.pulsePhase) * 0.05;
+            heartCloud.scale.set(pulseScale, pulseScale, pulseScale);
+
+            // Gentle floating up and down
+            heartCloud.position.y = 2.5 + Math.sin(time * 0.3) * 0.2;
+
+            // Rotate Memory Ring in opposite direction
+            memoryRing.rotation.y -= 0.001; // Slower, opposite direction
+
+            // Make all Polaroids face the center
+            memoryRing.children.forEach(polaroid => {
+                polaroid.lookAt(0, polaroid.position.y, 0);
+            });
+
+            // Gentle rotation of point light for atmospheric effect
+            pointLight.position.x = Math.sin(time * 0.5) * 3;
+            pointLight.position.z = Math.cos(time * 0.5) * 3;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Prevent default touch behaviors
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Start the experience
+        // Wait a moment before starting typewriter to let scene initialize
+        setTimeout(() => {
+            typeWriter();
+            animate();
+        }, 500);
+    </script>
+</body>
+
+</html>
