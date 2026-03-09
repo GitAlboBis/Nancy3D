@@ -111,7 +111,7 @@
 </head>
 
 <body>
-    <!-- Canvas Container for Three.js -->
+    <!-- Canvas Container for Three -->
     <div id="canvas-container"></div>
 
     <!-- Terminal Overlay -->
@@ -176,7 +176,7 @@
         // Scene
         const scene = new THREE.Scene();
 
-        // Create romantic text background (fallback)
+        // Create romantic text background 
         function createRomanticBackground() {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -224,7 +224,7 @@
             return new THREE.CanvasTexture(canvas);
         }
 
-        // Load Taj Mahal background image with fallback
+        // Load the background image with fallback
         const backgroundLoader = new THREE.TextureLoader();
         backgroundLoader.load(
             'background.jpg',
